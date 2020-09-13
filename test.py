@@ -5,8 +5,8 @@ from datetime import timedelta
 # create table books (isbn INT PRIMARY KEY, title VARCHAR(255), author VARCHAR(255), borrowed BOOLEAN);
 # create table borrows (tc INT, isbn INT, date VARCHAR(255));
 
-repopulate = 1
-test_search = 0
+repopulate = 0
+debug = 0
 
 mydb = mysql.connector.connect(
     host="localhost",
@@ -50,9 +50,13 @@ def flush():
 
     mycursor.execute(sql)
 
-    print("Flushed books")
+    sql = "DELETE FROM borrows"
+
+    mycursor.execute(sql)
 
     mydb.commit()
+
+    print("Flushed books and borrows")
 
 
 def search(value, field):
@@ -67,7 +71,21 @@ def search(value, field):
 
     return myresult
 
+def search_person(tc):
+    
+    mycursor = mydb.cursor()
 
+    sql = "SELECT * FROM borrows WHERE tc = %s"
+    val = (tc, )
+
+    mycursor.execute(sql, val)
+
+    myresult = mycursor.fetchall()
+
+    return myresult   
+
+
+# incomplete needs 8 book limit
 def borrow(tc, isbn):
     book = search(isbn, "isbn")
 
@@ -77,6 +95,12 @@ def borrow(tc, isbn):
 
     if book[0][3] == 1:
         print("Book is not available")
+        return False
+
+    person = search_person(tc)
+
+    if len(person) == 8:
+        print("You can't borrow more than 8 books")
         return False
 
     mycursor = mydb.cursor()
@@ -112,8 +136,16 @@ if repopulate == 1:
         borrow(i*10,i)
 
 
-if test_search == 1:
-    print(search("ramiz2", "author"))
+if debug == 1:
+    # print(search("ramiz2", "author"))
+
+    print(search_person(1812000))
+
+    for i in range(1000, 1100, 5):
+        borrow(1812000,i)
+
+    print(search_person(1812000))
+
 
 
 
