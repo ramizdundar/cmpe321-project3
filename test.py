@@ -1,6 +1,8 @@
 import mysql.connector
 from datetime import datetime
 from datetime import timedelta
+from flask import Flask, render_template, request, redirect, url_for
+app = Flask(__name__)
 
 # create table books (isbn INT PRIMARY KEY, title VARCHAR(255), author VARCHAR(255), borrowed BOOLEAN);
 # create table borrows (tc INT, isbn INT, date VARCHAR(255));
@@ -27,7 +29,7 @@ def insert(isbn, title, author):
     mydb.commit()
 
     print("Added book:", val)
-    return
+    return val
 
 
 def delete(isbn):
@@ -41,6 +43,8 @@ def delete(isbn):
     print("Deleted book:", val)
 
     mydb.commit()
+
+    return val
 
 
 def flush():
@@ -91,17 +95,17 @@ def borrow(tc, isbn):
 
     if len(book) == 0:
         print("Book not found")
-        return False
+        return "Book not found"
 
     if book[0][3] == 1:
         print("Book is not available")
-        return False
+        return "Book is not available"
 
     person = search_person(tc)
 
     if len(person) == 8:
         print("You can't borrow more than 8 books")
-        return False
+        return "You can't borrow more than 8 books"
 
     mycursor = mydb.cursor()
 
@@ -117,7 +121,7 @@ def borrow(tc, isbn):
     mydb.commit()
 
     print(f"TC: {tc} borrowed ISBN: {isbn}")
-    return True
+    return f"TC: {tc} borrowed ISBN: {isbn}"
 
 
 
@@ -148,7 +152,107 @@ if debug == 1:
 
 
 
+@app.route('/', methods=['POST','GET'])
+def home():
+    if request.method == 'POST':
+        action = request.form['action']
+
+        if action == 'insert':
+            return redirect(url_for('insertflask'))
+
+        if action == 'delete':
+            return redirect(url_for('deleteflask'))
+
+        if action == 'search':
+            return redirect(url_for('searchflask'))
+
+        if action == 'borrow':
+            return redirect(url_for('borrowflask'))
+
+        if action == 'search_person':
+            return redirect(url_for('search_personflask'))
+    
+    return render_template('home.html')
+
+
+@app.route('/insert', methods=['POST','GET'])
+def insertflask():
+    if request.method == 'POST':
+        isbn = request.form['isbn']
+        title = request.form['title']
+        author = request.form['author']
+        book = insert(isbn, title, author)
+        return render_template('message.html', message=f'Book {book} added.')
+
+    return render_template('insert.html')
+
+
+@app.route('/delete', methods=['POST','GET'])
+def deleteflask():
+    if request.method == 'POST':
+        isbn = request.form['isbn']
+        book = delete(isbn)
+        return render_template('message.html', message=f'Book {book} deleted.')
+
+    return render_template('delete.html')
+
+
+@app.route('/search', methods=['POST','GET'])
+def searchflask():
+    if request.method == 'POST':
+        field = request.form['field']
+        value = request.form[field]
+        books = search(value, field)
+        message = ''
+
+        for book in books:
+            message += str(book) + '\n'
+
+        return render_template('message.html', message=message)
+
+    return render_template('search.html')
+
+
+@app.route('/borrow', methods=['POST','GET'])
+def borrowflask():
+    if request.method == 'POST':
+        tc = request.form['tc']
+        isbn = request.form['isbn']
+        message = borrow(tc, isbn)
+        return render_template('message.html', message=message)
+
+    return render_template('borrow.html')
+
+
+@app.route('/search_person', methods=['POST','GET'])
+def search_personflask():
+    if request.method == 'POST':
+        tc = request.form['tc']
+        books = search_person(tc)
+        message = ''
+
+        for book in books:
+            message += str(book) + '\n'
+
+        return render_template('message.html', message=message)
+
+    return render_template('search_person.html')
 
 
 
-print("====END====")
+
+
+
+
+
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+# print("====END====")
+
+
+
