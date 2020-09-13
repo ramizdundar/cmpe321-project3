@@ -7,8 +7,8 @@ app = Flask(__name__)
 # create table books (isbn INT PRIMARY KEY, title VARCHAR(255), author VARCHAR(255), borrowed BOOLEAN);
 # create table borrows (tc INT, isbn INT, date VARCHAR(255));
 
-repopulate = 0
-debug = 0
+repopulate = 1
+debug = 1
 
 mydb = mysql.connector.connect(
     host="localhost",
@@ -16,6 +16,13 @@ mydb = mysql.connector.connect(
     password="1234",
     database="cmpe321"
 )
+
+# mycursor = mydb.cursor()
+
+# sql = "CREATE TRIGGER tr_borrow BEFORE INSERT ON borrows FOR EACH ROW UPDATE books SET borrowed = 1 WHERE isbn = NEW.isbn"
+
+# mycursor.execute(sql)
+
 
 def insert(isbn, title, author):
     mycursor = mydb.cursor()
@@ -75,6 +82,7 @@ def search(value, field):
 
     return myresult
 
+
 def search_person(tc):
     
     mycursor = mydb.cursor()
@@ -89,7 +97,6 @@ def search_person(tc):
     return myresult   
 
 
-# incomplete needs 8 book limit
 def borrow(tc, isbn):
     book = search(isbn, "isbn")
 
@@ -108,11 +115,11 @@ def borrow(tc, isbn):
         return "You can't borrow more than 8 books"
 
     mycursor = mydb.cursor()
+    # Added this part to trigger
+    # sql = "UPDATE books SET borrowed = %s WHERE isbn = %s"
+    # val = (1, isbn)
 
-    sql = "UPDATE books SET borrowed = %s WHERE isbn = %s"
-    val = (1, isbn)
-
-    mycursor.execute(sql, val)
+    # mycursor.execute(sql, val)
 
     sql = "INSERT INTO borrows (tc, isbn, date) VALUES (%s, %s, %s)"
     val = (tc, isbn, (datetime.now()+timedelta(days=14)).strftime("%d-%m-%Y"))
@@ -122,7 +129,6 @@ def borrow(tc, isbn):
 
     print(f"TC: {tc} borrowed ISBN: {isbn}")
     return f"TC: {tc} borrowed ISBN: {isbn}"
-
 
 
 if repopulate == 1:
@@ -149,7 +155,6 @@ if debug == 1:
         borrow(1812000,i)
 
     print(search_person(1812000))
-
 
 
 @app.route('/', methods=['POST','GET'])
@@ -239,20 +244,5 @@ def search_personflask():
     return render_template('search_person.html')
 
 
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-# print("====END====")
-
-
-
